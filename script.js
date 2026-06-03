@@ -47,7 +47,7 @@ list.sort((a, b) => {
   list.forEach(subject => {
     const card = document.createElement("div");
    card.className = `card ${subject.risk}`;
- card.innerHTML = `
+card.innerHTML = `
 <h2>${subject.name}</h2>
 <p>教授：${subject.teacher}</p>
 <p>単位数：${subject.credit}</p>
@@ -68,7 +68,8 @@ ${isAdmin ? `
 </button>
 ` : ""}
 `;
-       
+
+        
 document.body.appendChild(card);
   });
 }
