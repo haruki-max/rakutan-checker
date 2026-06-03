@@ -47,19 +47,28 @@ list.sort((a, b) => {
   list.forEach(subject => {
     const card = document.createElement("div");
    card.className = `card ${subject.risk}`;
-
-     card.innerHTML = `
-  <h2>${subject.name}</h2>
-  <p>教授：${subject.teacher}</p>
-  <p>単位数：${subject.credit}</p>
-  <p>出席：${subject.attendance}</p>
-  <p>テスト：${subject.test}</p>
-  <p>レポート：${subject.report}</p>
-  <p>メモ：${subject.memo || "なし"}</p>
+ card.innerHTML = `
+<h2>${subject.name}</h2>
+<p>教授：${subject.teacher}</p>
+<p>単位数：${subject.credit}</p>
+<p>出席：${subject.attendance}</p>
+<p>テスト：${subject.test}</p>
+<p>レポート：${subject.report}</p>
+<p>メモ：${subject.memo || "なし"}</p>
 
 <span class="badge">${subject.risk}</span>
 
-  
+${isAdmin ? `
+<button onclick="deleteSubject('${subject.name}')">
+削除
+</button>
+
+<button onclick="editSubject('${subject.name}')">
+編集
+</button>
+` : ""}
+`;
+       
    document.body.appendChild(card);
   });
 }
