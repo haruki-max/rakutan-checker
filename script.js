@@ -1,3 +1,7 @@
+const isAdmin =
+  prompt("管理者パスワード") === "1114";
+
+
 let subjects = JSON.parse(localStorage.getItem("subjects")) || [
   {
     name: "民法総則",
@@ -145,4 +149,10 @@ if (risk === "1") {
 
   saveSubjects();
   displaySubjects(subjects);
+}
+
+if (!isAdmin) {
+  document.getElementById(
+    "addButton"
+  ).style.display = "none";
 }
