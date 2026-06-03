@@ -59,21 +59,24 @@ list.sort((a, b) => {
 
 <span class="badge">${subject.risk}</span>
 
-  <button onclick="deleteSubject('${subject.name}')">
-    削除
-  </button>
-
-  <button onclick="editSubject('${subject.name}')">
-    編集
-  </button>
-`;  
+  
    document.body.appendChild(card);
   });
 }
 
 displaySubjects(subjects);
 
-const searchBox = document.querySelector("input");
+const search${isAdmin ? `
+
+<button onclick="deleteSubject('${subject.name}')">
+削除
+</button>
+
+<button onclick="editSubject('${subject.name}')">
+編集
+</button>
+` : ""}
+ Box = document.querySelector("input");
 
 searchBox.addEventListener("input", function () {
   const keyword = searchBox.value;
