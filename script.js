@@ -69,7 +69,7 @@ ${isAdmin ? `
 ` : ""}
 `;
        
-   document.body.appendChild(card);
+document.body.appendChild(card);
   });
 }
 
