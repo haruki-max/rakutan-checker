@@ -134,3 +134,38 @@ input {
 .安全 .badge {
   background: green;
 }
+
+const searchBox = document.querySelector("input");
+
+searchBox.addEventListener("input", function () {
+    const keyword = searchBox.value;
+
+    const filtered = subjects.filter(subject =>
+        subject.name.includes(keyword)
+    );
+
+    displaySubjects(filtered);
+});
+
+displaySubjects(subjects);
+
+.card {
+    position: relative;
+    z-index: 1;
+}
+
+button {
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 99999 !important;
+}
+
+.card {
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.badge {
+    pointer-events: none !important;
+}
