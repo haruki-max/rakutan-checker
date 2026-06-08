@@ -1,28 +1,66 @@
-const isAdmin =
-  prompt("管理者パスワード") === "1114";
-
+let isAdmin = false;
+const adminPassword = "1114";
 
 let subjects = JSON.parse(localStorage.getItem("subjects")) || [
-  {
-    name: "民法総則",
-    teacher: "山田",
-    credit: 2,
-    attendance: "重い",
-    test: "100%",
-    report: "少ない",
-    risk: "危険"
-  },
+    {
+        name: "民法総則",
+        teacher: "山田",
+        credit: 2,
+        attendance: "重い",
+        test: "100%",
+        report: "少ない",
+        risk: "危険"
+    },
 
-  {
-    name: "刑法総論",
-    teacher: "佐藤",
-    credit: 2,
-    attendance: "普通",
-    test: "70%",
-    report: "あり",
-    risk: "普通"
-  }
+    {
+        name: "刑法総論",
+        teacher: "佐藤",
+        credit: 2,
+        attendance: "普通",
+        test: "70%",
+        report: "あり",
+        risk: "普通"
+    }
 ];
+ 
+
+function addSubject() {
+    if (!isAdmin) {
+        const pass = prompt("管理者パスワードを入力");
+
+        if (pass !== adminPassword) {
+            alert("パスワードが違います");
+            return;
+        }
+
+        isAdmin = true;
+    }
+
+    const name = prompt("授業名を入力");
+    if (!name) return;
+
+    const teacher = prompt("教授名");
+    const credit = prompt("単位数");
+    const attendance = prompt("出席（良い / 普通 / 悪い）");
+    const test = prompt("テスト点数（0〜100）");
+    const report = prompt("レポート（あり / なし）");
+    const memo = prompt("メモ");
+    const risk = prompt("危険 / 普通 / 安全");
+
+    subjects.push({
+        name,
+        teacher,
+        credit,
+        attendance,
+        test,
+        report,
+        memo,
+        risk
+    });
+
+    saveSubjects();
+    displaySubjects(subjects);
+}
 
 function saveSubjects() {
   localStorage.setItem("subjects", JSON.stringify(subjects));
