@@ -135,20 +135,6 @@ input {
   background: green;
 }
 
-const searchBox = document.querySelector("input");
-
-searchBox.addEventListener("input", function () {
-    const keyword = searchBox.value;
-
-    const filtered = subjects.filter(subject =>
-        subject.name.includes(keyword)
-    );
-
-    displaySubjects(filtered);
-});
-
-displaySubjects(subjects);
-
 .card {
     position: relative;
     z-index: 1;
