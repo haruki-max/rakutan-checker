@@ -17,6 +17,21 @@
 
 <h1>落単チェッカー</h1>
 
+<button onclick="showTaskForm()">課題追加</button>
+
+<div id="taskForm" style="display:none; margin-top:20px;">
+  <input type="text" id="taskSubject" placeholder="授業名">
+  <input type="text" id="taskName" placeholder="課題名">
+  <input type="date" id="taskDate">
+  <input type="time" id="taskTime">
+
+  <button onclick="addTask()">課題保存</button>
+</div>
+
+<h2>課題一覧</h2>
+<ul id="taskList"></ul>
+
+
 <input
 type="text"
 placeholder="授業名を検索"

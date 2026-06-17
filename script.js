@@ -207,3 +207,49 @@ function editSubject(subjectName) {
         displaySubjects(subjects);
     }
 }
+
+function showTaskForm() {
+  const form = document.getElementById("taskForm");
+
+  if (form.style.display === "none") {
+    form.style.display = "block";
+  } else {
+    form.style.display = "none";
+  }
+}
+
+function addTask() {
+  const subject = document.getElementById("taskSubject").value;
+  const taskName = document.getElementById("taskName").value;
+  const date = document.getElementById("taskDate").value;
+  const time = document.getElementById("taskTime").value;
+
+  if (!subject || !taskName || !date || !time) {
+    alert("全部入力して！");
+    return;
+  }
+
+  const li = document.createElement("li");
+  li.innerHTML = `
+    <strong>${subject}</strong><br>
+    ${taskName}<br>
+    締切: ${date} ${time}
+  `;
+
+  document.getElementById("taskList").appendChild(li);
+
+  // 1時間前通知
+  const deadline = new Date(`${date}T${time}`);
+  const notifyTime = deadline.getTime() - (60 * 60 * 1000);
+  const delay = notifyTime - Date.now();
+
+  if (delay > 0) {
+    setTimeout(() => {
+      new Notification(`${subject}の課題締切1時間前！`, {
+        body: `${taskName} の締切が近い！`
+      });
+    }, delay);
+  }
+
+  alert("課題保存した！");
+}
