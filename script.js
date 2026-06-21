@@ -1,30 +1,30 @@
+import { db } from "./firebase.js";
+
+
+import {
+  collection,
+  getDocs,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
 let isAdmin = false;
 const adminPassword = "1114";
 
-let subjects = JSON.parse(localStorage.getItem("subjects")) || [
-    {
-        name: "民法総則",
-        teacher: "山田",
-        credit: 2,
-        attendance: "重い",
-        test: "100%",
-        report: "少ない",
-        risk: "危険"
-    },
+let subjects = [];
 
-    {
-        name: "刑法総論",
-        teacher: "佐藤",
-        credit: 2,
-        attendance: "普通",
-        test: "70%",
-        report: "あり",
-        risk: "普通"
-    }
-];
- 
+async function loadSubjects() {
+  const querySnapshot = await getDocs(collection(db, "subjects"));
 
-function addSubject() {
+  subjects = [];
+
+  querySnapshot.forEach((doc) => {
+    subjects.push(doc.data());
+  });
+
+  displaySubjects(subjects);
+}
+
+async function addSubject() {
     if (!isAdmin) {
         const pass = prompt("管理者パスワードを入力");
 
@@ -46,26 +46,36 @@ function addSubject() {
     const report = prompt("レポート（あり / なし）");
     const memo = prompt("メモ");
     const risk = prompt("危険 / 普通 / 安全");
-
     const task = prompt("課題名（なければ空白）");
     const deadline = prompt("締切（例: 2026-06-20 18:00）");
 
-    subjects.push({
-    name,
-    teacher,
-    credit,
-    attendance,
-    test,
-    report,
-    memo,
-    risk,
-    task,
-    deadline
-    });
+    const subject = {
+        name,
+        teacher,
+        credit,
+        attendance,
+        test,
+        report,
+        memo,
+        risk,
+        task,
+        deadline
+    };
 
+    // Firestoreへ保存
+    await addDoc(collection(db, "subjects"), subject);
+
+    // ローカルにも保存
+    subjects.push(subject);
     saveSubjects();
     displaySubjects(subjects);
+
+    alert("保存しました！");
 }
+
+ 
+
+
 
 function saveSubjects() {
   localStorage.setItem("subjects", JSON.stringify(subjects));
@@ -253,3 +263,24 @@ function addTask() {
 
   alert("課題保存した！");
 }
+
+async function testFirestore() {
+  try {
+    await window.addDoc(
+      window.collection(window.db, "subjects"),
+      {
+        name: "Firestoreテスト",
+        teacher: "ChatGPT",
+        createdAt: new Date().toISOString()
+      }
+    );
+
+    console.log("Firestore保存成功！");
+    alert("Firestoreに保存できました！");
+  } catch (e) {
+    console.error(e);
+    alert("保存失敗");
+  }
+}
+
+window.addSubject = addSubject;
