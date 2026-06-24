@@ -1,10 +1,14 @@
 import { db } from "./firebase.js";
 
 
+
 import {
   collection,
   getDocs,
-  addDoc
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 let isAdmin = false;
@@ -17,13 +21,43 @@ async function loadSubjects() {
 
   subjects = [];
 
-  querySnapshot.forEach((doc) => {
-    subjects.push(doc.data());
+  querySnapshot.forEach((docSnap) => {
+    subjects.push({
+      id: docSnap.id,
+      ...docSnap.data()
+    });
   });
 
+  console.log(subjects);
+
   displaySubjects(subjects);
+  displayTasks(subjects);
 }
 
+function displayTasks(list) {
+    const taskList = document.getElementById("taskList");
+    taskList.innerHTML = "";
+
+    const tasks = list
+        .filter(subject => subject.task && subject.task.trim() !== "")
+        .sort((a, b) => {
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return new Date(a.deadline) - new Date(b.deadline);
+        });
+
+    tasks.forEach(subject => {
+        const li = document.createElement("li");
+
+        li.innerHTML = `
+            <strong>${subject.name}</strong><br>
+            📝 ${subject.task}<br>
+            📅 ${subject.deadline || "なし"}
+        `;
+
+        taskList.appendChild(li);
+    });
+}
 async function addSubject() {
     if (!isAdmin) {
         const pass = prompt("管理者パスワードを入力");
@@ -66,9 +100,7 @@ async function addSubject() {
     await addDoc(collection(db, "subjects"), subject);
 
     // ローカルにも保存
-    subjects.push(subject);
-    saveSubjects();
-    displaySubjects(subjects);
+    await loadSubjects();
 
     alert("保存しました！");
 }
@@ -90,7 +122,15 @@ function displaySubjects(list) {
 };
 
 list.sort((a, b) => {
-  return riskOrder[a.risk] - riskOrder[b.risk];
+  // まず危険度順
+  const riskDiff = riskOrder[a.risk] - riskOrder[b.risk];
+  if (riskDiff !== 0) return riskDiff;
+
+  // 同じ危険度なら締切が近い順
+  if (!a.deadline) return 1;
+  if (!b.deadline) return -1;
+
+  return new Date(a.deadline) - new Date(b.deadline);
 });
 
   document.querySelectorAll(".card").forEach(card => {
@@ -98,8 +138,41 @@ list.sort((a, b) => {
   });
 
   list.forEach(subject => {
+    let deadlineText = "期限なし";
+
+if (subject.deadline) {
+  const now = new Date();
+  const deadline = new Date(subject.deadline);
+
+  const diffDays = Math.ceil(
+    (deadline - now) / (1000 * 60 * 60 * 24)
+  );
+
+  if (diffDays < 0) {
+    deadlineText = "🔴 期限切れ";
+  } else if (diffDays === 0) {
+    deadlineText = "🟠 今日まで";
+  } else if (diffDays === 1) {
+    deadlineText = "🟡 あと1日";
+  } else {
+    deadlineText = `🟢 あと${diffDays}日`;
+  }
+}
     const card = document.createElement("div");
-   card.className = `card ${subject.risk}`;
+    let cardClass = subject.risk;
+
+if (subject.deadline) {
+    const diff = Math.ceil(
+        (new Date(subject.deadline) - new Date()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diff < 0) {
+        cardClass = "expired";
+    } else if (diff === 0) {
+        cardClass = "today";
+    }
+}
+   card.className = `card ${cardClass}`;
   card.innerHTML = `
 <h2>${subject.name}</h2>
 <p>教授：${subject.teacher}</p>
@@ -109,6 +182,7 @@ list.sort((a, b) => {
 <p>レポート：${subject.report}</p>
 <p>課題：${subject.task || "なし"}</p>
 <p>締切：${subject.deadline || "なし"}</p>
+<p><strong>${deadlineText}</strong></p>
 <p>メモ：${subject.memo || "なし"}</p>
 
 <span class="badge">${subject.risk}</span>
@@ -127,7 +201,6 @@ document.body.appendChild(card);
   });
 }
 
-displaySubjects(subjects);
 
 const searchBox = document.querySelector("input");
 
@@ -194,15 +267,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-function deleteSubject(subjectName) {
-    subjects = subjects.filter(subject => subject.name !== subjectName);
+async function deleteSubject(subjectName) {
+    const subject = subjects.find(s => s.name === subjectName);
 
-    localStorage.setItem("subjects", JSON.stringify(subjects));
+    if (!subject) return;
 
-    displaySubjects(subjects);
+    await deleteDoc(doc(db, "subjects", subject.id));
+
+    await loadSubjects();
 }
 
-function editSubject(subjectName) {
+async function editSubject(subjectName) {
     const subject = subjects.find(subject => subject.name === subjectName);
 
     if (!subject) return;
@@ -212,9 +287,11 @@ function editSubject(subjectName) {
     if (newDeadline !== null) {
         subject.deadline = newDeadline;
 
-        localStorage.setItem("subjects", JSON.stringify(subjects));
+        await updateDoc(doc(db, "subjects", subject.id), {
+            deadline: newDeadline
+        });
 
-        displaySubjects(subjects);
+        await loadSubjects();
     }
 }
 
@@ -228,11 +305,17 @@ function showTaskForm() {
   }
 }
 
-function addTask() {
+async function addTask() {
   const subject = document.getElementById("taskSubject").value;
   const taskName = document.getElementById("taskName").value;
   const date = document.getElementById("taskDate").value;
   const time = document.getElementById("taskTime").value;
+  const target = subjects.find(s => s.name === subject);
+
+  if (!target) {
+    alert("授業が見つかりません");
+    return;
+ }
 
   if (!subject || !taskName || !date || !time) {
     alert("全部入力して！");
@@ -260,6 +343,13 @@ function addTask() {
       });
     }, delay);
   }
+  
+  await updateDoc(doc(db, "subjects", target.id), {
+    task: taskName,
+    deadline: `${date} ${time}`
+});
+
+await loadSubjects();
 
   alert("課題保存した！");
 }
@@ -284,3 +374,9 @@ async function testFirestore() {
 }
 
 window.addSubject = addSubject;
+window.editSubject = editSubject;
+window.deleteSubject = deleteSubject;
+window.showTaskForm = showTaskForm;
+window.addTask = addTask;
+
+loadSubjects();

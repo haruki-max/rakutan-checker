@@ -155,3 +155,11 @@ button {
 .badge {
     pointer-events: none !important;
 }
+
+.card.expired {
+    border-left: 8px solid red;
+}
+
+.card.today {
+    border-left: 8px solid orange;
+}
