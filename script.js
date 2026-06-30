@@ -491,5 +491,5 @@ document.getElementById("syncBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("lineBtn").addEventListener("click", () => {
-    window.open("ここにLINE公式のURL", "_blank");
+    window.open("https://lin.ee/NdnOrI0C", "_blank", "noopener,noreferrer");
 });
