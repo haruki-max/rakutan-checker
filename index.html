@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
     <title>落単チェッカー</title>
     <link rel="stylesheet" href="style.css">
 
@@ -14,6 +16,31 @@
 </head>
 <body>
 
+<h2>ログイン</h2>
+
+<input type="email" id="email" placeholder="メールアドレス">
+<br><br>
+
+<input type="password" id="password" placeholder="パスワード">
+<br><br>
+
+<button id="registerBtn">新規登録</button>
+<button id="loginBtn">ログイン</button>
+<button id="logoutBtn">ログアウト</button>
+
+<p id="userInfo">ログアウト中</p>
+
+<h2>Manaba同期</h2>
+
+<input type="text" id="manabaId" placeholder="学籍番号">
+<br><br>
+
+<input type="password" id="manabaPassword" placeholder="Manabaパスワード">
+<br><br>
+
+<button id="syncBtn">Manabaと同期</button>
+
+<p id="syncStatus"></p>
 
 <h1>落単チェッカー</h1>
 
@@ -27,6 +54,8 @@
 
   <button onclick="addTask()">課題保存</button>
 </div>
+
+<button id="lineBtn">LINE公式を追加</button>
 
 <h2>課題一覧</h2>
 <ul id="taskList"></ul>

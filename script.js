@@ -1,5 +1,11 @@
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 
 import {
@@ -17,7 +23,11 @@ const adminPassword = "1114";
 let subjects = [];
 
 async function loadSubjects() {
-  const querySnapshot = await getDocs(collection(db, "subjects"));
+  if (!auth.currentUser) return;
+
+const querySnapshot = await getDocs(
+  collection(db, "subjects")
+);
 
   subjects = [];
 
@@ -47,15 +57,35 @@ function displayTasks(list) {
         });
 
     tasks.forEach(subject => {
-        const li = document.createElement("li");
+    const deadline = new Date(subject.deadline);
+    const today = new Date();
 
-        li.innerHTML = `
-            <strong>${subject.name}</strong><br>
-            📝 ${subject.task}<br>
-            📅 ${subject.deadline || "なし"}
-        `;
+    const diffDays = Math.ceil(
+        (deadline - today) / (1000 * 60 * 60 * 24)
+    );
 
-        taskList.appendChild(li);
+    let status = "";
+
+    if (diffDays < 0) {
+        status = "🔴 期限切れ";
+    } else if (diffDays === 0) {
+        status = "🟠 今日まで";
+    } else if (diffDays === 1) {
+        status = "🟡 あと1日";
+    } else {
+        status = `🟢 あと${diffDays}日`;
+    }
+
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+        <strong>${subject.name}</strong><br>
+        📝 ${subject.task}<br>
+        📅 ${subject.deadline}<br>
+        ${status}
+    `;
+
+    taskList.appendChild(li);
     });
 }
 async function addSubject() {
@@ -97,7 +127,10 @@ async function addSubject() {
     };
 
     // Firestoreへ保存
-    await addDoc(collection(db, "subjects"), subject);
+    await addDoc(
+    collection(db, "users", auth.currentUser.uid, "subjects"),
+    subject
+);
 
     // ローカルにも保存
     await loadSubjects();
@@ -272,7 +305,9 @@ async function deleteSubject(subjectName) {
 
     if (!subject) return;
 
-    await deleteDoc(doc(db, "subjects", subject.id));
+    await deleteDoc(
+    doc(db, "users", auth.currentUser.uid, "subjects", subject.id)
+);
 
     await loadSubjects();
 }
@@ -287,9 +322,13 @@ async function editSubject(subjectName) {
     if (newDeadline !== null) {
         subject.deadline = newDeadline;
 
-        await updateDoc(doc(db, "subjects", subject.id), {
+        await updateDoc(
+    doc(db, "users", auth.currentUser.uid, "subjects", subject.id),
+    {
             deadline: newDeadline
-        });
+        }
+      );
+    
 
         await loadSubjects();
     }
@@ -343,7 +382,7 @@ async function addTask() {
       });
     }, delay);
   }
-  
+
   await updateDoc(doc(db, "subjects", target.id), {
     task: taskName,
     deadline: `${date} ${time}`
@@ -379,4 +418,78 @@ window.deleteSubject = deleteSubject;
 window.showTaskForm = showTaskForm;
 window.addTask = addTask;
 
-loadSubjects();
+document.getElementById("registerBtn").addEventListener("click", async () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("新規登録成功！");
+    } catch (e) {
+        alert(e.message);
+    }
+});
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("ログイン成功！");
+    } catch (e) {
+        alert(e.message);
+    }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    alert("ログアウトしました");
+});
+
+onAuthStateChanged(auth, async (user) => {
+    const userInfo = document.getElementById("userInfo");
+
+    if (user) {
+        userInfo.textContent = `ログイン中: ${user.email}`;
+        await loadSubjects();
+    } else {
+        userInfo.textContent = "ログアウト中";
+        subjects = [];
+        displaySubjects([]);
+        displayTasks([]);
+    }
+});
+
+document.getElementById("syncBtn").addEventListener("click", async () => {
+    const manabaId = document.getElementById("manabaId").value;
+    const manabaPassword = document.getElementById("manabaPassword").value;
+
+    if (!manabaId || !manabaPassword) {
+        alert("学籍番号とパスワードを入力してください");
+        return;
+    }
+
+    document.getElementById("syncStatus").textContent = "同期準備中...";
+
+    console.log({
+        uid: auth.currentUser.uid,
+        manabaId
+    });
+
+    await fetch("Cloud RunのURL", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        uid: auth.currentUser.uid,
+        manabaId,
+        manabaPassword
+    })
+    });
+});
+
+document.getElementById("lineBtn").addEventListener("click", () => {
+    window.open("ここにLINE公式のURL", "_blank");
+});
