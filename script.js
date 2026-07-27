@@ -26,7 +26,7 @@ async function loadSubjects() {
   if (!auth.currentUser) return;
 
 const querySnapshot = await getDocs(
-  collection(db, "subjects")
+  collection(db, "users", auth.currentUser.uid, "subjects")
 );
 
   subjects = [];
