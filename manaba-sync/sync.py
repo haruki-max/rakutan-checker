@@ -1,122 +1,148 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-USERNAME = os.getenv("MANABA_USERNAME")
-PASSWORD = os.getenv("MANABA_PASSWORD")
-
-print(f"USERNAME: {USERNAME}")
-print(f"PASSWORDの文字数: {len(PASSWORD) if PASSWORD else 0}")
-
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import firestore
 
 from selenium import webdriver
-from selenium.webdriver.edge.service import Service
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 import time
 
-cred = credentials.Certificate("rakutan-checker-firebase-adminsdk-fbsvc-6af7feefe1.json")
-firebase_admin.initialize_app(cred)
+
+# Firebase初期化
+if not firebase_admin._apps:
+    firebase_admin.initialize_app()
 
 db = firestore.client()
 
-service = Service(EdgeChromiumDriverManager().install())
-driver = webdriver.Edge(service=service)
 
-driver.get("https://hgu.manaba.jp")
+def run_sync(uid, manaba_id, manaba_password):
 
-time.sleep(2)
+    # Cloud Run用Chromium設定
+    options = Options()
+    options.binary_location = "/usr/bin/chromium"
 
-print(driver.current_url)
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
 
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+    driver = webdriver.Chrome(options=options)
 
-wait = WebDriverWait(driver, 20)
+    try:
+        # Manabaを開く
+        driver.get("https://hgu.manaba.jp")
 
-username = wait.until(
-    EC.visibility_of_element_located((By.NAME, "username"))
-)
-password = wait.until(
-    EC.visibility_of_element_located((By.NAME, "password"))
-)
-login_button = wait.until(
-    EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))
-)
+        wait = WebDriverWait(driver, 20)
 
-username.send_keys(USERNAME)
-password.send_keys(PASSWORD)
-login_button.click()
-
-time.sleep(5)
-
-driver.get("https://hgu.manaba.jp/ct/home_library_query")
-
-time.sleep(3)
-
-
-rows = driver.find_elements(By.CSS_SELECTOR, "table.stdlist tbody tr")
-print("取得した行数:", len(rows))
-
-subject_ref = db.collection("subjects")
-
-manaba_tasks = set()
-for row in rows[1:]:
-    cols = row.find_elements(By.TAG_NAME, "td")
-
-    if len(cols) >= 5:
-        key = (cols[2].text, cols[1].text)
-        manaba_tasks.add(key)
-        
-        print({
-            "type": cols[0].text,
-            "title": cols[1].text,
-            "course": cols[2].text,
-            "deadline": cols[4].text,
-        })
-
-        existing = (
-            subject_ref
-            .where("name", "==", cols[2].text)
-            .where("task", "==", cols[1].text)
-            .get()
+        # ログインフォームを取得
+        username = wait.until(
+            EC.visibility_of_element_located((By.NAME, "username"))
         )
 
-        data = {
-            "name": cols[2].text,
-            "teacher": "",
-            "credit": "",
-            "attendance": "",
-            "test": "",
-            "report": "",
-            "memo": "",
-            "risk": "普通",
-            "task": cols[1].text,
-            "deadline": cols[4].text
+        password = wait.until(
+            EC.visibility_of_element_located((By.NAME, "password"))
+        )
+
+        login_button = wait.until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "button[type='submit']")
+            )
+        )
+
+        # ユーザーが入力したManaba情報を使用
+        username.send_keys(manaba_id)
+        password.send_keys(manaba_password)
+        login_button.click()
+
+        time.sleep(5)
+
+        # 課題一覧
+        driver.get("https://hgu.manaba.jp/ct/home_library_query")
+
+        time.sleep(3)
+
+        rows = driver.find_elements(
+            By.CSS_SELECTOR,
+            "table.stdlist tbody tr"
+        )
+
+        print("取得した行数:", len(rows))
+
+        # ユーザーごとのsubjectsに保存
+        subject_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("subjects")
+        )
+
+        manaba_tasks = set()
+
+        for row in rows[1:]:
+
+            cols = row.find_elements(By.TAG_NAME, "td")
+
+            if len(cols) >= 5:
+
+                course = cols[2].text
+                task = cols[1].text
+                deadline = cols[4].text
+
+                key = (course, task)
+                manaba_tasks.add(key)
+
+                existing = (
+                    subject_ref
+                    .where("name", "==", course)
+                    .where("task", "==", task)
+                    .get()
+                )
+
+                data = {
+                    "name": course,
+                    "teacher": "",
+                    "credit": "",
+                    "attendance": "",
+                    "test": "",
+                    "report": "",
+                    "memo": "",
+                    "risk": "普通",
+                    "task": task,
+                    "deadline": deadline
+                }
+
+                if existing:
+                    existing[0].reference.update(data)
+                    print("更新:", task)
+
+                else:
+                    subject_ref.add(data)
+                    print("追加:", task)
+
+        # Manabaから消えた課題をFirestoreから削除
+        docs = subject_ref.stream()
+
+        for doc in docs:
+
+            data = doc.to_dict()
+
+            # Manaba同期で追加された課題だけを対象
+            task = data.get("task")
+            name = data.get("name")
+
+            if task and (name, task) not in manaba_tasks:
+                print("削除:", task)
+                doc.reference.delete()
+
+        print("同期完了")
+
+        return {
+            "success": True,
+            "message": "Manaba同期が完了しました",
+            "taskCount": len(manaba_tasks)
         }
 
-        if existing:
-            existing[0].reference.update(data)
-            print("更新:", cols[1].text)
-        else:
-            subject_ref.add(data)
-            print("追加:", cols[1].text)
-
-print("同期完了！")
-
-docs = subject_ref.stream()
-
-for doc in docs:
-    data = doc.to_dict()
-
-    key = (data.get("name"), data.get("task"))
-
-    if key not in manaba_tasks:
-        print("削除:", data.get("task"))
-        doc.reference.delete()
-driver.quit()
+    finally:
+        driver.quit()

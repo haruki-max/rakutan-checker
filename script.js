@@ -470,26 +470,44 @@ document.getElementById("syncBtn").addEventListener("click", async () => {
         return;
     }
 
-    document.getElementById("syncStatus").textContent = "同期準備中...";
+    // 同期開始
+    document.getElementById("syncStatus").textContent = "同期中...";
 
     console.log({
         uid: auth.currentUser.uid,
         manabaId
     });
 
-    await fetch("Cloud RunのURL", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-        uid: auth.currentUser.uid,
-        manabaId,
-        manabaPassword
-    })
-    });
-});
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+        const response = await fetch(
+            "https://manaba-sync-1000257457532.asia-northeast1.run.app",
+            {
+                method: "POST",
+                headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${idToken}`
+},
+                body: JSON.stringify({
+                    manabaId,
+                    manabaPassword
+                })
+            }
+        );
 
-document.getElementById("lineBtn").addEventListener("click", () => {
-    window.open("https://lin.ee/NdnOrI0C", "_blank", "noopener,noreferrer");
+        const result = await response.json();
+
+        if (result.success) {
+            document.getElementById("syncStatus").textContent = "同期完了！";
+            alert(`同期完了！${result.taskCount ?? 0}件の課題を取得しました`);
+        } else {
+            document.getElementById("syncStatus").textContent = "同期失敗";
+            alert(`同期失敗：${result.message}`);
+        }
+
+    } catch (error) {
+        console.error("同期エラー:", error);
+        document.getElementById("syncStatus").textContent = "同期失敗";
+        alert("同期中にエラーが発生しました");
+    }
 });

@@ -4,3 +4,4 @@ webdriver-manager
 python-dotenv
 Flask
 gunicorn
+flask-cors
