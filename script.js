@@ -499,6 +499,10 @@ document.getElementById("syncBtn").addEventListener("click", async () => {
 
         if (result.success) {
             document.getElementById("syncStatus").textContent = "同期完了！";
+
+            await loadSubjects();
+
+            
             alert(`同期完了！${result.taskCount ?? 0}件の課題を取得しました`);
         } else {
             document.getElementById("syncStatus").textContent = "同期失敗";
