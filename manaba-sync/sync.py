@@ -59,11 +59,17 @@ def run_sync(uid, manaba_id, manaba_password):
 
         time.sleep(5)
 
+        # ログイン成功チェック
+        if driver.find_elements(By.NAME, "username"):
+            return {
+                "success": False,
+                "message": "ManabaのIDまたはパスワードが違います"
+            }
+
         # 課題一覧
         driver.get("https://hgu.manaba.jp/ct/home_library_query")
 
         time.sleep(3)
-
         rows = driver.find_elements(
             By.CSS_SELECTOR,
             "table.stdlist tbody tr"
