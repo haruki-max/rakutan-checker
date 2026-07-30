@@ -478,6 +478,11 @@ document.getElementById("syncBtn").addEventListener("click", async () => {
         manabaId
     });
 
+    const syncBtn = document.getElementById("syncBtn");
+
+syncBtn.disabled = true;
+syncBtn.textContent = "同期中...";
+
     try {
       const idToken = await auth.currentUser.getIdToken();
         const response = await fetch(
@@ -510,8 +515,11 @@ document.getElementById("syncBtn").addEventListener("click", async () => {
         }
 
     } catch (error) {
-        console.error("同期エラー:", error);
-        document.getElementById("syncStatus").textContent = "同期失敗";
-        alert("同期中にエラーが発生しました");
-    }
+    console.error("同期エラー:", error);
+    document.getElementById("syncStatus").textContent = "同期失敗";
+    alert("同期中にエラーが発生しました");
+} finally {
+    syncBtn.disabled = false;
+    syncBtn.textContent = "Manabaと同期";
+}
 });
