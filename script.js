@@ -507,6 +507,14 @@ syncBtn.textContent = "同期中...";
 
             await loadSubjects();
 
+            const now = new Date();
+const syncTime = now.toLocaleString("ja-JP");
+
+localStorage.setItem("lastSync", syncTime);
+
+document.getElementById("lastSync").textContent =
+    `最終同期：${syncTime}`;
+
             
             alert(`同期完了！${result.taskCount ?? 0}件の課題を取得しました`);
         } else {
@@ -523,3 +531,10 @@ syncBtn.textContent = "同期中...";
     syncBtn.textContent = "Manabaと同期";
 }
 });
+
+const lastSync = localStorage.getItem("lastSync");
+
+if (lastSync) {
+    document.getElementById("lastSync").textContent =
+        `最終同期：${lastSync}`;
+}
