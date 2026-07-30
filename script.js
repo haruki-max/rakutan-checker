@@ -250,8 +250,10 @@ searchBox.addEventListener("input", function () {
 displaySubjects(subjects);
 
 // 通知許可
-if (Notification.permission !== "granted") {
-  Notification.requestPermission();
+if ("Notification" in window) {
+  if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
 }
 
 // 締切チェック
